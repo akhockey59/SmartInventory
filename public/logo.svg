@@ -1,0 +1,13 @@
+<svg width="150" height="40" viewBox="0 0 150 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Box Icon -->
+  <rect x="2" y="10" width="20" height="20" stroke="white" stroke-width="2"/>
+  <rect x="8" y="16" width="20" height="20" stroke="white" stroke-width="2"/>
+  <!-- QR Code-like dots -->
+  <circle cx="7" cy="15" r="2" fill="white"/>
+  <circle cx="13" cy="21" r="2" fill="white"/>
+  <circle cx="19" cy="27" r="2" fill="white"/>
+  <!-- Text -->
+  <text x="35" y="28" font-family="Arial" font-weight="bold" font-size="18" fill="white">
+    SMART INVENTORY
+  </text>
+</svg> 
