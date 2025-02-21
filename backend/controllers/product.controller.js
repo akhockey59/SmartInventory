@@ -1,56 +1,42 @@
 const Product = require('../models/product.model');
 const QRCode = require('qrcode');
-const crypto = require('crypto');
-const cloudinary = require('cloudinary').v2;
-
-// Configure Cloudinary
-cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET
-});
+const cloudinary = require('../config/cloudinary');
+const mongoose = require('mongoose');
 
 // Create new product
 exports.createProduct = async (req, res) => {
     try {
         const { title, description, quantity, category } = req.body;
 
-        // Generate QR code data URL
-        const qrCodeDataUrl = await QRCode.toDataURL(JSON.stringify({
+        // Generate unique product identifier
+        const productId = new mongoose.Types.ObjectId();
+        
+        // Create QR code content
+        const qrContent = JSON.stringify({
+            id: productId,
             title,
-            description,
-            quantity,
-            category,
-            createdAt: new Date()
-        }));
+            category
+        });
 
-        let qrCodeUrl = '';
-        let qrCodePublicId = '';
+        // Generate QR code
+        const qrCodeDataUrl = await QRCode.toDataURL(qrContent);
 
-        // Only try to upload to Cloudinary if credentials are configured
-        if (process.env.CLOUDINARY_API_KEY) {
-            try {
-                // Upload QR code to Cloudinary
-                const uploadResponse = await cloudinary.uploader.upload(qrCodeDataUrl, {
-                    folder: 'product-qrcodes'
-                });
-                qrCodeUrl = uploadResponse.secure_url;
-                qrCodePublicId = uploadResponse.public_id;
-            } catch (cloudinaryError) {
-                console.error('Cloudinary upload error:', cloudinaryError);
-                // Continue without Cloudinary if upload fails
-            }
-        }
+        // Upload to Cloudinary
+        const uploadResult = await cloudinary.uploader.upload(qrCodeDataUrl, {
+            folder: 'product-qrcodes',
+            public_id: `qr_${productId}`,
+        });
 
-        // Create product with or without QR code URL
+        // Create product
         const product = await Product.create({
+            _id: productId,
             user: req.user._id,
             title,
             description,
             quantity,
             category,
-            qrCode: qrCodeUrl,
-            qrCodePublicId: qrCodePublicId
+            qrCode: uploadResult.secure_url,
+            qrCodePublicId: uploadResult.public_id
         });
 
         // Check if quantity is low

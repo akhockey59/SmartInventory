@@ -1,5 +1,15 @@
+const nodemailer = require('nodemailer');
 const Product = require('../models/product.model');
 const InventoryTransaction = require('../models/inventory.model');
+
+// Configure nodemailer
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASSWORD
+  }
+});
 
 exports.createExportRequest = async (req, res) => {
   try {
@@ -75,7 +85,9 @@ exports.updateExportRequest = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    const transaction = await InventoryTransaction.findById(id);
+    const transaction = await InventoryTransaction.findById(id)
+      .populate('user', 'name email')
+      .populate('product', 'title');
 
     if (!transaction) {
       return res.status(404).json({
@@ -84,26 +96,44 @@ exports.updateExportRequest = async (req, res) => {
       });
     }
 
-    // If approving, update product quantity
-    if (status === 'approved') {
-      const product = await Product.findById(transaction.product);
-      if (product.quantity < transaction.quantity) {
-        return res.status(400).json({
-          success: false,
-          message: 'Insufficient product quantity'
-        });
-      }
-      product.quantity -= transaction.quantity;
-      await product.save();
-    }
-
+    // Update status
     transaction.status = status;
     await transaction.save();
 
+    // Send email notification
+    const emailSubject = `Export Request ${status.charAt(0).toUpperCase() + status.slice(1)}`;
+    const emailText = `
+      Dear ${transaction.user.name},
+
+      Your export request for ${transaction.product.title} has been ${status}.
+
+      Details:
+      - Product: ${transaction.product.title}
+      - Quantity: ${transaction.quantity}
+      - Transport: ${transaction.transportType}
+      - Workers: ${transaction.laborers}
+      - Total Cost: ₹${transaction.totalCost}
+
+      ${status === 'approved' 
+        ? 'Our team will contact you shortly for further arrangements.'
+        : 'Please contact support if you have any questions.'}
+
+      Best regards,
+      Your Export Team
+    `;
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: transaction.user.email,
+      subject: emailSubject,
+      text: emailText
+    });
+
     res.status(200).json({
       success: true,
-      transaction
+      message: `Request ${status} and notification sent`
     });
+
   } catch (error) {
     console.error('Update export request error:', error);
     res.status(500).json({

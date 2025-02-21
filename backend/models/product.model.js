@@ -26,17 +26,19 @@ const ProductSchema = new mongoose.Schema({
   },
   qrCode: {
     type: String,
-    default: '',
+    default: null,
   },
   qrCodePublicId: {
     type: String,
-    default: '',
+    default: null,
   },
   createdAt: {
     type: Date,
     default: Date.now,
   },
 }, { timestamps: true });
+
+ProductSchema.index({ qrCode: 1 }, { unique: false });
 
 const Product = mongoose.model("Product", ProductSchema);
 module.exports = Product;

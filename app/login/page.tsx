@@ -19,8 +19,8 @@ export default function Login() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
+    setError('');
 
     try {
       const response = await api.post('/auth/login', {
@@ -31,8 +31,12 @@ export default function Login() {
       if (response.data.success) {
         // Store token
         localStorage.setItem('token', response.data.token);
-        // Store user info
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        // Store user info including name
+        localStorage.setItem('user', JSON.stringify({
+          name: response.data.user.name, // Make sure name is included
+          email: response.data.user.email,
+          role: response.data.user.role
+        }));
         
         // Redirect based on role
         if (response.data.user.role === 'admin') {
